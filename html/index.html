@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>badnginx</title>
+        <meta http-equiv="Content-Type" content="text/html"; charset="utf-8" />
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    </head>
+    <body>
+        <p>Hello, BadNginx!</p>
+        <p>Api response data:<input type="text" value="" id="api"></p>
+
+        <p>Contents List</p>
+        <h3>HTTP Splitting</h3>
+        <li><a href="/split/unsafe/aaa.json">Case 1-1: HTTP Splitting確認用(名前付きサブパターン)</a></li>
+        <li><a href="/split/unsafe_uri/aaa.json">Case 1-2 HTTP Splitting確認用($uri使用)</a></li>
+        <li><a href="/split/safe/aaa.json">Case 1-3: HTTP Splitting確認用(対策済)</a></li>
+        <li><a href="/split/unsafe/%0d%0aX-CSRF-Token:injected%0d%0aaaa.json">Case 1-4 HTTP Splitting攻撃用(名前付きサブパターン)</a></li>
+        <li><a href="/split/unsafe_uri/%0d%0aX-CSRF-Token:injected%0d%0aaaa.json">Case 1-5 HTTP Splitting攻撃用($uri使用)</a></li>
+        <li><a href="/split/safe/%0d%0aX-CSRF-Token:injected%0d%0aaaa.json">Case 1-6 HTTP Splitting攻撃用(対策済)</a></li>
+        
+        <h3>alias Path Traversal</h3>
+        <li><a href="/bad_alias/onion.jpg">Case 2-1: jpg閲覧 確認用</a></li>
+        <li><a href="/alias/onion.jpg">Case 2-2: jpg閲覧(対策済) 確認用</a></li>
+        <li><a href="/bad_alias../secret/secret.html">Case 2-3: シークレットファイル閲覧 攻撃用</a></li>
+        <li><a href="/alias../secret/secret.html">Case 2-4: シークレットファイル閲覧(対策済 404エラー) 攻撃用</a></li>
+        
+        <h3>SSRF</h3>
+        <li><a href="/proxy/http/badnginx.local/">Case 3-1: SSRF(internal設定なし) 攻撃用</a></li>
+        <li><a href="/internal-proxy/http/badnginx.local/">Case 3-2: SSRF(internal設定あり) 攻撃用</a></li>
+        <li><a href="/internal-proxy/http/badnginx.local/some">Case 3-3: SSRF(internal設定あり) 攻撃用</a></li>
+
+        <h3>Redefining of response headers</h3>
+        <li><a href="/ah/index.html">Case 4-1: X-frame-Optionレスポンスヘッダの確認 確認用 </a></li>
+        <li><a href="/ah/new-headers/index.html">Case 4-2: X-frame-Optionレスポンスヘッダの確認 確認用</a></li>
+        
+        <h3>Multiline response headers</h3>
+        <li><a href="/multiline/">Case 5-1: 複数行で返すレスポンスヘッダの確認 確認用</a></li>
+        <li><a href="/oneline/">Case 5-2: 単一行で返すレスポンスヘッダの確認</a></li>
+
+        <p>※ ブラウザで判別できない場合があります。ローカルプロキシツールで確認することを推奨します</p>
+        
+        <h3>Problems with referrer/origin validation</h3>
+        <li><a href="/">Case 6-1: APIデータ読み取りの確認 確認用</a></li>
+        <li><a href="http://evilnginx.com/">Case 6-2: APIデータ読み取りの確認(SOPエラーにより失敗) 確認用</a></li>
+        <li><a href="http://www.badnginx.com.evilnginx.com">Case 6-3: APIデータ読み取りの確認 攻撃用</a></li>
+        
+        <h3>none invalid referes</h3>
+        <li><a href="http://www.badnginx.com.evilnginx.com/index.html">Case 7-1: www.badnginx.com.evilnginx.comにアクセス 確認用</a></li>
+        <li>Case 7-2: www.badnginx.com.evilnginx.comにアクセス(ローカルプロキシツールでrefererヘッダを削除すること) 攻撃用</li>
+
+        <h3>Host Header forgery</h3>
+        <li><a href="/unsafe_hostspoofing/">Case 8-1: Host header forgery($http_host) 確認用</a></li>
+        <li><a href="/unsafe_hostspoofing/">Case 8-2: Host header forgery($http_host) ローカルプロキシツールでHostヘッダの値をevilenginx.comに変更 攻撃用</a></li>
+        <li><a href="/unsafe_hostspoofing/">Case 8-3: Host header forgery($http_host) ローカルプロキシツールでリクエストラインのパスをhttp://evilenginx.comに変更 攻撃用</a></li>
+        <li><a href="/safe_hostspoofing/">Case 8-4: Host header forgery($host) 確認用</a></li>
+        <li><a href="/safe_hostspoofing/">Case 8-5: Host header forgery($host) ローカルプロキシツールでHostヘッダの値をevilenginx.comに変更 攻撃用</a></li>
+        <li><a href="/safe_hostspoofing/">Case 8-6: Host header forgery($host) ローカルプロキシツールでリクエストラインのパスをhttp://evilenginx.comに変更 攻撃用</a></li>
+
+        <img src="/images/onion.jpg" width="300px" height="300px"/>
+        <script>
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', 'http://www.badnginx.com/api/');
+            xhr.send(null);
+
+            $(function(){
+                document.getElementById("api").value = xhr.responseText;
+            });
+        </script>
+    
+    </body>
+</html>

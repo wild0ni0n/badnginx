@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>evilnginx</title>
+        <meta http-equiv="Content-Type" content="text/html"; charset="utf-8" />
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    </head>
+    <body>
+        <p>Hello, EvilNginx!</p>
+        <h3>Case-6 リファラ/オリジン検証用</h3>
+        <p>Api response data:<input type="text" value="" id="api"></p>
+        <script>
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', 'http://www.badnginx.com/api/');
+            xhr.send(null);
+
+            $(function(){
+                document.getElementById("api").value = xhr.responseText;
+            });
+        </script>
+        <hr>
+        <h3>Case-7 リファラ検証用画像</h3>
+        <li>Case 7-1: 画像リンクにアクセス(403エラー) 確認用</li>
+        <li>Case 7-2: 画像リンクにアクセス(ローカルプロキシツールでrefererヘッダを削除すること) 攻撃用</li>
+        <a href="http://www.badnginx.com/images/onion.jpg">画像リンク</a>
+    </body>
+</html>

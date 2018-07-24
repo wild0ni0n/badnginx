@@ -1,0 +1,159 @@
+# upstream server for SSRF.
+upstream badnginx.local {
+  server localhost:81;
+}
+server {
+  listen 81 default_server;
+  server_name badnginx.local;
+  default_type text/plain;
+  location / {
+    root /var/www/usingproxy/;
+  }
+
+  # host header forgery(unsafe) upstream server
+  location ~* /(.*)_hostspoofing/ {
+    add_header Cache-Control no-cache;
+    root /var/www/;
+    return 200 "http_host : $http_host\r\nhost : $host";
+  }
+}
+
+server {
+  listen 81;
+  server_name backend.badnginx.local;
+  default_type text/plain;
+
+  # host header forgery(safe) upstream server
+  location ~* /(.*)_hostspoofing/ {
+    add_header Cache-Control no-cache;
+    root /var/www/;
+    return 200 "http_host : $http_host\r\nhost : $host";
+  }
+}
+
+# refferer/origin validation(malcious site)
+server {
+  server_name *.evilnginx.com;
+  listen 80;
+  default_type text/plain; 
+  location / {
+    root /var/www/evil/;
+  }
+}
+
+server {
+	server_name www.badnginx.com;
+  listen 80 default;
+  default_type text/plain;
+  
+  # http splitting sample(unsafe)
+  location ~ /split/unsafe/((?<action>[^.]*)\.json)?$ {
+    add_header X-Action $action;
+    return 200 "OK";
+  }
+
+  # http splitting sample(unsafe)
+  location ~ /split/unsafe_uri/ {
+    add_header X-Action $uri;
+    return 200 "OK";
+  }
+
+  # http splitting sample(safe)
+  location ~ /split/safe/ {
+    add_header X-Action $request_uri;
+    return 200 "OK";
+  }
+
+  # alias path traversal(safe)
+  location /alias/ {
+    alias /var/www/images/;
+  }
+
+  # alias path tracersal(unsafe)
+  location /bad_alias {
+    alias /var/www/images/;
+  }
+
+  # ssrf(unsafe)
+  location ~ /proxy/(.*)/(.*)/(.*)$ {
+    resolver 8.8.8.8;
+    proxy_pass $1://$2/$3;
+    proxy_set_header Host $2;
+  }
+  
+  # ssrf(unsafe)
+  rewrite ^/(.*)/some$ /$1/ last;
+  location ~* ^/internal-proxy/(?<proxy_proto>https?)/(?<proxy_host>.*?)/(?<proxy_path>/*)$ {
+    internal;
+    resolver 8.8.8.8;
+    proxy_pass $proxy_proto://$proxy_host/$proxy_path;
+    proxy_set_header Host $proxy_host;
+  }
+  
+  # Redefining of response headeres by "add_header" directive
+  add_header X-Frame-Options "DENY" always;
+  
+  location /ah/ {
+    return 200 "index";
+  }
+
+  location /ah/new-headers/ {
+    add_header Cache-Control "no-chache, no-store, max-age=0, must-revalidate" always;
+    add_header Pragma "no-cache" always;
+
+    return 200 "new-headers";
+  }
+
+  # Multiline response headers(unsafe)
+  location /multiline/ {
+    add_header Content-Security-Policy "
+      default-src: 'none';
+      script-src data: http://badnginx.com;
+      style-src data: http://badnginx.com;
+      img-src data: http://badnginx.com;
+      font-src data: http://badnginx.com;";
+    return 200 "multiline add_header";
+  }
+
+  # Multiline reposne headers(safe)
+  location /oneline/ {
+    add_header Content-Security-Policy "default-src: 'none'; script-src data: http://badnginx.com; style-src data: http://badnginx.com; img-src data: http://badnginx.com; font-src data: http://badnginx.com;";
+    return 200 "oneline add_header";
+  }
+
+  # referrer/origin validation(prepare)
+  location / {
+    root /var/www/;
+  }
+
+  # refferer/origin validation(unsafe)
+  location /api/ {
+    if ($http_origin ~* ((^http://www\.badnginx\.com)|(^http://badnginx\.com))) {
+      add_header 'Access-Control-Allow-Origin' $http_origin;
+    }
+
+    root /var/www/;
+  }
+
+  # none in valid_referers
+  location ~* /images/.*\.jpg$ {
+    valid_referers none server_names *.badnginx.com;
+    if ($invalid_referer) {
+      return 403;
+    }
+    root /var/www/;
+  }
+
+  # host header forgery(using $http_host)
+  location /unsafe_hostspoofing/ {
+    proxy_set_header Host $http_host;
+    proxy_pass http://badnginx.local;
+  }
+
+  # host header forgery(using $host)
+  location /safe_hostspoofing/ {
+    proxy_set_header Host $host;
+    proxy_pass http://badnginx.local;
+  }
+}
+
